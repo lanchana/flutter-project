@@ -88,8 +88,8 @@ class ProductPage extends StatelessWidget {
           child: Column(children: [
             Container(
               margin: EdgeInsets.symmetric(vertical: 20.0, horizontal: 10.0),
-              child: Image.asset(
-                'assets/' + product.imageUrl,
+              child: Image.network(
+                product.imageUrl
               ),
             ),
             SizedBox(

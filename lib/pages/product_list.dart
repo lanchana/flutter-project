@@ -41,7 +41,7 @@ return  ListView.builder(
               contentPadding: EdgeInsets.all(10.0),
               leading: CircleAvatar(
                 backgroundImage: AssetImage(
-                  'assets/' + model.getProductList[index].imageUrl,
+                  model.getProductList[index].imageUrl,
                 ),
               ),
               title: Text(model.getProductList[index].title),
