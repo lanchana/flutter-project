@@ -39,6 +39,34 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
+  Widget _buildProduct() {
+    bool _ref = false;
+    return ScopedModelDescendant<MainModel>(
+      builder: (BuildContext context, Widget child, MainModel model) {
+        Widget content = Center(
+          child: Text('No Products Found!'),
+        );
+        if (model.displayedProduct.length > 0 && !model.loading) {
+          content = Products();
+        } else if (model.loading && !_ref) {
+          content = Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+        return RefreshIndicator(
+            onRefresh:() {
+              _ref = true;
+              model.fetchProducts().then((_) {
+              print('done');
+            });},
+            
+            child: content);
+      },
+    );
+
+    // return Products();
+  }
+
   @override
   void initState() {
     widget.model.fetchProducts();
@@ -67,7 +95,7 @@ class _ProductsPageState extends State<ProductsPage> {
           )
         ],
       ),
-      body: Products(),
+      body: _buildProduct(),
     );
   }
 }
