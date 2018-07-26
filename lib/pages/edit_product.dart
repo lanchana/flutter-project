@@ -6,6 +6,8 @@ import '../models/product.dart';
 import 'package:scoped_model/scoped_model.dart';
 import '../scoped-models/main.dart';
 
+import '../widgets/ui_elemente/alertBox.dart';
+
 class EditProducts extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
@@ -143,6 +145,8 @@ class _EditProductsState extends State<EditProducts> {
     );
   }
 
+  
+
   void _submitForm(
       Function addProduct, Function updateProduct, setSelectedProduct,
       [int selectedProductIndex]) {
@@ -159,26 +163,20 @@ class _EditProductsState extends State<EditProducts> {
               .pushNamed(context, '/products')
               .then((_) => setSelectedProduct(null));
         } else {
-          showDialog(context: context, builder: (BuildContext context){
-            return AlertDialog(
-              title: Text('Something went wrong!'),
-              content: Text('Do want to try again?'),
-              actions: <Widget>[
-                FlatButton(
-                  child: Text('Try again'),
-                  onPressed: () => Navigator.of(context).pop(),
-                )
-              ],
-            );
-          });
+          alertDialogueBox(context);
         }
       });
     } else {
       updateProduct(_formData['title'], _formData['description'],
-              _formData['imageUrl'], _formData['price'])
-          .then((_) => Navigator
+          _formData['imageUrl'], _formData['price']).then((success) {
+        if (success) {
+          Navigator
               .pushNamed(context, '/products')
-              .then((_) => setSelectedProduct(null)));
+              .then((_) => setSelectedProduct(null));
+        } else {
+          alertDialogueBox(context);
+        }
+      });
     }
 
     // Navigator

@@ -52,6 +52,10 @@ class ConnectingProductsModel extends Model {
       isLoading = false;
       notifyListeners();
       return true;
+    }).catchError((error) {
+      isLoading = false;
+      notifyListeners();
+      return false;
     });
   }
 }
@@ -106,7 +110,7 @@ class ProductModel extends ConnectingProductsModel {
     notifyListeners();
     return http
         .get('https://flutter-products-9738a.firebaseio.com/products.json')
-        .then((http.Response response) {
+        .then<Null>((http.Response response) {
       print(json.decode(response.body));
       final List<Product> fetchedProductList = [];
       final Map<String, dynamic> fetchedList = json.decode(response.body);
@@ -133,6 +137,10 @@ class ProductModel extends ConnectingProductsModel {
       _productList = fetchedProductList;
       isLoading = false;
       notifyListeners();
+    }).catchError((onError) {
+      isLoading = false;
+      notifyListeners();
+      return;
     });
   }
 
@@ -152,23 +160,32 @@ class ProductModel extends ConnectingProductsModel {
     notifyListeners();
   }
 
-  void deleteProduct() {
+  Future<bool> deleteProduct() {
     isLoading = true;
     final deletedProduct = selectedProductId;
     _productList.removeAt(selectedProductIndex);
 
     notifyListeners();
-    http
+    return http
         .delete(
-            'https://flutter-products-9738a.firebaseio.com/products/${deletedProduct}.json')
+            'https://flutter-products-9738a.firebaseio.com/products/${deletedProduct}')
         .then((http.Response response) {
-      _selProductId = null;
       isLoading = false;
       notifyListeners();
+      _selProductId = null;
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        return false;
+      }
+      return true;
+    }).catchError((onError) {
+      isLoading = false;
+      notifyListeners();
+      return false;
     });
   }
 
-  Future<Null> updateProduct(
+  Future<bool> updateProduct(
       String title, String description, String imageUrl, double price) {
     final Map<String, dynamic> postProductBody = {
       'title': title,
@@ -184,9 +201,14 @@ class ProductModel extends ConnectingProductsModel {
     notifyListeners();
     return http
         .put(
-            'https://flutter-products-9738a.firebaseio.com/products/${selectedProduct.id}.json',
+            'https://flutter-products-9738a.firebaseio.com/products/${selectedProduct.id}.json]',
             body: json.encode(postProductBody))
         .then((http.Response response) {
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        isLoading = false;
+        notifyListeners();
+        return false;
+      }
       final Product _updatedProduct = Product(
           id: selectedProduct.id,
           title: title,
@@ -199,6 +221,11 @@ class ProductModel extends ConnectingProductsModel {
       _productList[selectedProductIndex] = _updatedProduct;
       isLoading = false;
       notifyListeners();
+      return true;
+    }).catchError((onError) {
+      isLoading = false;
+      notifyListeners();
+      return false;
     });
   }
 

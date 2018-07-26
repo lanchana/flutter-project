@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import './edit_product.dart';
-import '../models/product.dart';
+
+import '../widgets/ui_elemente/alertBox.dart';
 
 import 'package:scoped_model/scoped_model.dart';
 import '../scoped-models/main.dart';
@@ -55,7 +56,11 @@ class _ProductsListState extends State<ProductList> {
                 if (direction == DismissDirection.endToStart) {
                   model.selectProduct(model.getProductList[index].id);
 
-                  model.deleteProduct();
+                  model.deleteProduct().then((success){
+                    if(!success) {
+                      alertDialogueBox(context);
+                    }
+                  });
                 }
               },
               child: Column(children: [
