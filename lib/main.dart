@@ -55,10 +55,14 @@ class _MyAppState extends State<MyApp> {
           }
 
           if (pathElements[1] == 'product') {
-            final index = int.parse(pathElements[2]);
+            final String id = pathElements[2];
+            Product product =
+                model.getProductList.firstWhere((Product product) {
+              return product.id == id;
+            });
+
             return MaterialPageRoute<bool>(
-              builder: (BuildContext context) =>
-                  ProductPage(index),
+              builder: (BuildContext context) => ProductPage(product),
             );
           }
           return null;

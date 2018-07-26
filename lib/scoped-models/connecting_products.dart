@@ -9,7 +9,7 @@ import '../models/user.dart';
 class ConnectingProductsModel extends Model {
   List<Product> _productList = [];
   User _authenticatedUser;
-  int _selProductIndex;
+  String _selProductId;
   bool isLoading = false;
 
   Future<Null> addProduct(
@@ -42,7 +42,7 @@ class ConnectingProductsModel extends Model {
           userId: _authenticatedUser.id);
 
       _productList.add(newProduct);
-      _selProductIndex = null;
+      _selProductId = null;
       isLoading = false;
       notifyListeners();
     });
@@ -56,25 +56,27 @@ class ProductModel extends ConnectingProductsModel {
     return List.from(_productList);
   }
 
-  int get selectedProductIndex {
-    return _selProductIndex;
+  String get selectedProductId {
+    return _selProductId;
   }
 
   Product get selectedProduct {
-    if (selectedProductIndex == null) {
+    if (selectedProductId == null) {
       return null;
     }
-    return _productList[selectedProductIndex];
+    return _productList.firstWhere((Product product) {
+      return product.id == selectedProductId;
+    });
+  }
+
+  int get selectedProductIndex {
+    return _productList.indexWhere((Product product) {
+      return product.id == _selProductId;
+    });
   }
 
   bool get displayFavorites {
     return showFavorites;
-  }
-
-  void toggleShowFavorite() {
-    showFavorites = !showFavorites;
-    _selProductIndex = null;
-    notifyListeners();
   }
 
   List<Product> get displayedProduct {
@@ -84,6 +86,12 @@ class ProductModel extends ConnectingProductsModel {
           .toList();
     }
     return List.from(_productList);
+  }
+
+  void toggleShowFavorite() {
+    showFavorites = !showFavorites;
+    _selProductId = null;
+    notifyListeners();
   }
 
   Future<Null> fetchProducts() {
@@ -139,15 +147,15 @@ class ProductModel extends ConnectingProductsModel {
 
   void deleteProduct() {
     isLoading = true;
-    final deletedProduct = selectedProductIndex;
-      _productList.removeAt(selectedProductIndex);
+    final deletedProduct = selectedProductId;
+    _productList.removeAt(selectedProductIndex);
 
     notifyListeners();
     http
         .delete(
             'https://flutter-products-9738a.firebaseio.com/products/${deletedProduct}.json')
         .then((http.Response response) {
-      _selProductIndex = null;
+      _selProductId = null;
       isLoading = false;
       notifyListeners();
     });
@@ -187,8 +195,8 @@ class ProductModel extends ConnectingProductsModel {
     });
   }
 
-  void selectProduct(int index) {
-    _selProductIndex = index;
+  void selectProduct(String id) {
+    _selProductId = id;
   }
 }
 

@@ -8,9 +8,10 @@ import '../scoped-models/main.dart';
 import '../models/product.dart';
 
 class ProductPage extends StatelessWidget {
-  final int index;
+  final Product product;
+  // final Strin
 
-  ProductPage(this.index);
+  ProductPage(this.product);
 
   Widget _buildProductTitlteAndPriceRow(BuildContext context, title, price) {
     return Row(
@@ -77,36 +78,42 @@ class ProductPage extends StatelessWidget {
         Navigator.pop(context, false);
         return Future.value(false);
       },
-      child: ScopedModelDescendant<MainModel>(builder: (BuildContext context, Widget child, MainModel model){
-        Product product = model.getProductList[index];
+      child: ScopedModelDescendant<MainModel>(
+        builder: (BuildContext context, Widget child, MainModel model) {
+          // Product product = product;
 
-        return Scaffold(
-        appBar: AppBar(
-          title: Text(product.title),
-        ),
-        body: Center(
-          child: Column(children: [
-            Container(
-              margin: EdgeInsets.symmetric(vertical: 20.0, horizontal: 10.0),
-              child: Image.network(
-                product.imageUrl
-              ),
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(product.title),
             ),
-            SizedBox(
-              height: 10.0,
+            body: Center(
+              child: Column(children: [
+                Container(
+                  margin:
+                      EdgeInsets.symmetric(vertical: 20.0, horizontal: 10.0),
+                  child: FadeInImage(
+                    image: NetworkImage(product.imageUrl),
+                    placeholder: AssetImage('assets/food.jpg'),
+                    height: 400.0,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                SizedBox(
+                  height: 10.0,
+                ),
+                Container(
+                  decoration: _borderBottom(),
+                  padding: EdgeInsets.only(bottom: 10.0),
+                  child: _buildProductTitlteAndPriceRow(
+                      context, product.title, product.price),
+                ),
+                _buildProductAddress(),
+                _buildProductDescription(product.description),
+              ]),
             ),
-            Container(
-              decoration: _borderBottom(),
-              padding: EdgeInsets.only(bottom: 10.0),
-              child: _buildProductTitlteAndPriceRow(context, product.title, product.price),
-            ),
-            _buildProductAddress(),
-            _buildProductDescription(product.description),
-          ]),
-        ),
-      );
-      },),
-       
+          );
+        },
+      ),
     );
   }
 }

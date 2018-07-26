@@ -19,7 +19,7 @@ class ProductCard extends StatelessWidget {
       children: [
         IconButton(
           onPressed: () {
-            Navigator.pushNamed<bool>(context, '/product/' + index.toString());
+            Navigator.pushNamed<bool>(context, '/product/' + product.id);
           },
           icon: Icon(
             Icons.info,
@@ -36,7 +36,7 @@ class ProductCard extends StatelessWidget {
                 color: Colors.redAccent,
               ),
               onPressed: () {
-                model.selectProduct(index);
+                model.selectProduct(model.getProductList[index].id);
                 model.toggleSelectedProductFavorite();
                 //  Navigator.pushNamed<bool>(
                 //     context, '/product/' + index.toString());

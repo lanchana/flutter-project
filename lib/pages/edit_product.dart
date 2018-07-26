@@ -151,7 +151,7 @@ class _EditProductsState extends State<EditProducts> {
       return;
     }
     _formKey.currentState.save();
-    if (selectedProductIndex == null) {
+    if (selectedProductIndex == -1) {
       addProduct(_formData['title'], _formData['description'],
               _formData['imageUrl'], _formData['price'])
           .then((_) => Navigator
@@ -159,7 +159,8 @@ class _EditProductsState extends State<EditProducts> {
               .then((_) => setSelectedProduct(null)));
     } else {
       updateProduct(_formData['title'], _formData['description'],
-          _formData['imageUrl'], _formData['price']).then((_) => Navigator
+              _formData['imageUrl'], _formData['price'])
+          .then((_) => Navigator
               .pushNamed(context, '/products')
               .then((_) => setSelectedProduct(null)));
     }
@@ -176,7 +177,7 @@ class _EditProductsState extends State<EditProducts> {
         // edit
         final Widget _pageContent =
             _buildPageContent(context, model.selectedProduct);
-        return model.selectedProductIndex == null
+        return model.selectedProductIndex == -1
             ? _pageContent
             : Scaffold(
                 appBar: AppBar(
