@@ -153,10 +153,26 @@ class _EditProductsState extends State<EditProducts> {
     _formKey.currentState.save();
     if (selectedProductIndex == -1) {
       addProduct(_formData['title'], _formData['description'],
-              _formData['imageUrl'], _formData['price'])
-          .then((_) => Navigator
+          _formData['imageUrl'], _formData['price']).then((success) {
+        if (success) {
+          Navigator
               .pushNamed(context, '/products')
-              .then((_) => setSelectedProduct(null)));
+              .then((_) => setSelectedProduct(null));
+        } else {
+          showDialog(context: context, builder: (BuildContext context){
+            return AlertDialog(
+              title: Text('Something went wrong!'),
+              content: Text('Do want to try again?'),
+              actions: <Widget>[
+                FlatButton(
+                  child: Text('Try again'),
+                  onPressed: () => Navigator.of(context).pop(),
+                )
+              ],
+            );
+          });
+        }
+      });
     } else {
       updateProduct(_formData['title'], _formData['description'],
               _formData['imageUrl'], _formData['price'])
