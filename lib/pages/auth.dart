@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'package:scoped_model/scoped_model.dart';
 import '../scoped-models/main.dart';
+import '../models/auth.dart';
 
 class AuthPage extends StatefulWidget {
   @override
@@ -15,8 +15,9 @@ class _AuthPageState extends State<AuthPage> {
   String usernameValue;
   String passwordValue;
   bool _switchListValue = false;
-  bool _checkboxListValue = false;
   final GlobalKey<FormState> _authFormKey = GlobalKey<FormState>();
+  final TextEditingController _passwordTextController = TextEditingController();
+  AuthMode _authmode = AuthMode.Signin;
 
   final Map<String, dynamic> _authFormData = {
     'email': null,
@@ -59,6 +60,7 @@ class _AuthPageState extends State<AuthPage> {
   Widget _buildPasswordTextField() {
     return TextFormField(
       obscureText: true,
+      controller: _passwordTextController,
       decoration: InputDecoration(
         labelText: 'Password',
         filled: true,
@@ -67,12 +69,30 @@ class _AuthPageState extends State<AuthPage> {
       ),
       validator: (String value) {
         if (value.isEmpty ||
-            !RegExp(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$').hasMatch(value)) {
+            !RegExp(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$')
+                .hasMatch(value)) {
           return 'Password must contain atleast one letter ans one number';
         }
       },
       onSaved: (String value) {
         _authFormData['password'] = value;
+      },
+    );
+  }
+
+  Widget _buildConfirmPasswordTextField() {
+    return TextFormField(
+      obscureText: true,
+      decoration: InputDecoration(
+        labelText: 'Confirm Password',
+        filled: true,
+        fillColor: Colors.white,
+        labelStyle: TextStyle(color: Colors.purple),
+      ),
+      validator: (String value) {
+        if (_passwordTextController.text != value) {
+          return 'Passwords doesnt match';
+        }
       },
     );
   }
@@ -102,14 +122,36 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  void _submitForm(Function login) {
-    if (!_authFormKey.currentState.validate() || !_authFormData['acceptTerms']) {
+  void _submitForm(Function authMode) async {
+    if (!_authFormKey.currentState.validate() ||
+        !_authFormData['acceptTerms']) {
       return;
     }
     _authFormKey.currentState.save();
-    login(_authFormData['email'], _authFormData['password']);
+
+    final Map<String, dynamic> res = await authMode(
+        _authFormData['email'], _authFormData['password'], _authmode);
+
+    if (res['success']) {
+      Navigator.pushReplacementNamed(context, '/products');
+    } else {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Error message'),
+              content: Text(res['message']),
+              actions: <Widget>[
+                FlatButton(
+                  child: Text('Back'),
+                  onPressed: () => Navigator.of(context).pop(),
+                )
+              ],
+            );
+          });
+    }
+
     print('Username: $usernameValue, Password: $passwordValue');
-    Navigator.pushReplacementNamed(context, '/products');
   }
 
   @override
@@ -144,17 +186,45 @@ class _AuthPageState extends State<AuthPage> {
                         height: 10.0,
                       ),
                       _buildPasswordTextField(),
+                      SizedBox(
+                        height: 10.0,
+                      ),
+
+                      _authmode == AuthMode.Signup
+                          ? _buildConfirmPasswordTextField()
+                          : Container(),
                       _buildSwitchList(),
-                      _buildCkeckBoxList(),
-                      SizedBox(height: 20.0),
-                      ScopedModelDescendant<MainModel>(builder: (BuildContext context, Widget child, MainModel model){
-                        return RaisedButton(
-                        onPressed: () => _submitForm(model.login),
+                      SizedBox(
+                        height: 10.0,
+                      ),
+                      FlatButton(
                         child: Text(
-                          'Login',
-                          style: TextStyle(color: Colors.white, fontSize: 20.0),
-                        ),
-                      );
+                            'Swicth to ${_authmode == AuthMode.Signin ? 'SignUp' : 'Signin'}'),
+                        onPressed: () {
+                          setState(() {
+                            _authmode = _authmode == AuthMode.Signin
+                                ? AuthMode.Signup
+                                : AuthMode.Signin;
+                          });
+                        },
+                      ),
+                      // _buildCkeckBoxList(),
+                      SizedBox(height: 20.0),
+                      ScopedModelDescendant<MainModel>(builder:
+                          (BuildContext context, Widget child,
+                              MainModel model) {
+                        return model.isLoading == true
+                            ? CircularProgressIndicator()
+                            : RaisedButton(
+                                onPressed: () => _submitForm(model.authMode),
+                                child: Text(
+                                  _authmode == AuthMode.Signin
+                                      ? 'Login'
+                                      : 'Signup',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 20.0),
+                                ),
+                              );
                       })
                     ],
                   ),

@@ -4,6 +4,7 @@ import './edit_product.dart';
 import './product_list.dart';
 
 import '../scoped-models/main.dart';
+import '../widgets/ui_elemente/logout_list_tile.dart';
 
 class ProductAdmin extends StatelessWidget {
 
@@ -25,7 +26,8 @@ ProductAdmin(this.model);
             onTap: () {
               Navigator.pushReplacementNamed(context, '/products');
             },
-          )
+          ),
+          LogoutListTile(),
         ],
       ),
     );

@@ -5,6 +5,7 @@ import '../models/product.dart';
 
 import '../scoped-models/main.dart';
 import 'package:scoped_model/scoped_model.dart';
+import '../widgets/ui_elemente/logout_list_tile.dart';
 
 class ProductsPage extends StatefulWidget {
   final MainModel model;
@@ -33,7 +34,8 @@ class _ProductsPageState extends State<ProductsPage> {
               // Navigator.pop(context);
               Navigator.pushReplacementNamed(context, '/admin');
             },
-          )
+          ),
+          LogoutListTile(),
         ],
       ),
     );
@@ -46,9 +48,9 @@ class _ProductsPageState extends State<ProductsPage> {
         Widget content = Center(
           child: Text('No Products Found!'),
         );
-        if (model.displayedProduct.length > 0 && !model.loading) {
+        if (model.displayedProduct.length > 0 && !model.isLoading) {
           content = Products();
-        } else if (model.loading && !_ref) {
+        } else if (model.isLoading && !_ref) {
           content = Center(
             child: CircularProgressIndicator(),
           );
