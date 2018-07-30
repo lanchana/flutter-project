@@ -2,8 +2,9 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:scoped_model/scoped_model.dart';
 import 'package:http/http.dart' as http;
+import 'package:rxdart/rxdart.dart';
 
- import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/product.dart';
 import '../models/user.dart';
@@ -62,15 +63,13 @@ class ProductModel extends ConnectingProductsModel {
     notifyListeners();
   }
 
-  Future<Null> fetchProducts() {
-    print('fetch products');
+  Future<Null> fetchProducts({onlyForUser = false}) {
     _isLoading = true;
     notifyListeners();
     return http
         .get(
             'https://flutter-products-9738a.firebaseio.com/products.json?auth=${_authenticatedUser.token}')
         .then<Null>((http.Response response) {
-      print(json.decode(response.body));
       final List<Product> fetchedProductList = [];
       final Map<String, dynamic> fetchedList = json.decode(response.body);
       if (fetchedList == null) {
@@ -78,23 +77,29 @@ class ProductModel extends ConnectingProductsModel {
         notifyListeners();
         return;
       }
-      print('inside if comndition');
       fetchedList.forEach((productId, dynamic productData) {
-        print('inside foreach');
         final Product product = Product(
-            id: productId,
-            title: productData['title'],
-            price: productData['price'],
-            description: productData['description'],
-            userEmail: productData['userEmail'],
-            userId: productData['userId'],
-            imageUrl: productData['imageUrl']);
+          id: productId,
+          title: productData['title'],
+          price: productData['price'],
+          description: productData['description'],
+          userEmail: productData['userEmail'],
+          userId: productData['userId'],
+          imageUrl: productData['imageUrl'],
+          isFavorite: productData['wishListUsers'] == null
+              ? false
+              : (productData['wishListUsers'] as Map<String, dynamic>)
+                  .containsKey(_authenticatedUser.id),
+        );
 
         fetchedProductList.add(product);
       });
-
-      print(fetchedProductList);
-      _productList = fetchedProductList;
+      print(_authenticatedUser.id);
+      _productList = onlyForUser
+          ? fetchedProductList.where((Product product) {
+              return product.userId == _authenticatedUser.id;
+            }).toList()
+          : fetchedProductList;
       _isLoading = false;
       notifyListeners();
     }).catchError((onError) {
@@ -150,7 +155,7 @@ class ProductModel extends ConnectingProductsModel {
     }
   }
 
-  void toggleSelectedProductFavorite() {
+  void toggleSelectedProductFavorite() async {
     final bool selectedProductFavorite = selectedProduct.isFavorite;
     final bool currentFavorite = !selectedProductFavorite;
     final Product _updatedProduct = Product(
@@ -164,6 +169,34 @@ class ProductModel extends ConnectingProductsModel {
         isFavorite: currentFavorite);
     _productList[selectedProductIndex] = _updatedProduct;
     notifyListeners();
+
+    http.Response response;
+    if (currentFavorite) {
+      response = await http.put(
+          'https://flutter-products-9738a.firebaseio.com/products/${selectedProduct.id}/wishListUsers/${_authenticatedUser.id}.json?auth=${_authenticatedUser.token}', body: json.encode(true));
+    } else {
+      response = await http.delete(
+          'https://flutter-products-9738a.firebaseio.com/products/${selectedProduct.id}/wishListUsers/${_authenticatedUser.id}.json?auth=${_authenticatedUser.token}');
+    }
+
+    print(json.decode(response.body));
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      final Product _updatedProduct = Product(
+          id: selectedProduct.id,
+          title: selectedProduct.title,
+          description: selectedProduct.description,
+          imageUrl: selectedProduct.imageUrl,
+          price: selectedProduct.price,
+          userEmail: selectedProduct.userEmail,
+          userId: selectedProduct.userId,
+          isFavorite: !currentFavorite);
+      _productList[selectedProductIndex] = _updatedProduct;
+      notifyListeners();
+    }
+    selectProduct(null);
+
+    // selectedProduct = null;
   }
 
   Future<bool> deleteProduct() {
@@ -241,8 +274,15 @@ class ProductModel extends ConnectingProductsModel {
 }
 
 class UserModel extends ConnectingProductsModel {
+  Timer _expiryTime;
+  final PublishSubject<bool> _userSubject = PublishSubject();
+
   User get authenticatedUser {
     return _authenticatedUser;
+  }
+
+  PublishSubject<bool> get userSubject {
+    return _userSubject;
   }
 
   Future<Map<String, dynamic>> authMode(String email, String password,
@@ -253,6 +293,7 @@ class UserModel extends ConnectingProductsModel {
       'returnSecureToken': true
     };
     _isLoading = true;
+    userSubject.add(false);
     notifyListeners();
     http.Response response;
     if (mode == AuthMode.Signup) {
@@ -267,8 +308,9 @@ class UserModel extends ConnectingProductsModel {
 
     final Map<String, dynamic> firebaseResponse = json.decode(response.body);
     print(firebaseResponse);
-    // _authenticatedUser{email: email}
+    print(firebaseResponse['expiresIn']);
 
+    setTimeoutFunction(int.parse(firebaseResponse['expiresIn']));
     bool success = false;
     String message = 'Something went wrong';
 
@@ -279,10 +321,16 @@ class UserModel extends ConnectingProductsModel {
           email: firebaseResponse['email'],
           token: firebaseResponse['idToken']);
 
-       final SharedPreferences prefs = await SharedPreferences.getInstance();
-       prefs.setString('token', firebaseResponse['idToken']);
-       prefs.setString('email', firebaseResponse['email']);
-       prefs.setString('localId', firebaseResponse['localId']);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      _userSubject.add(true);
+      prefs.setString('token', firebaseResponse['idToken']);
+      prefs.setString('email', firebaseResponse['email']);
+      prefs.setString('localId', firebaseResponse['localId']);
+      final DateTime now = DateTime.now();
+      final DateTime expiryTime = now
+          .add(new Duration(seconds: int.parse(firebaseResponse['expiresIn'])));
+
+      prefs.setString('expiryTime', expiryTime.toIso8601String());
 
       message = 'Authentication Success';
     } else if (firebaseResponse['error']['message'] == 'EMAIL_NOT_FOUND') {
@@ -300,27 +348,51 @@ class UserModel extends ConnectingProductsModel {
     return {'success': success, 'message': message};
   }
 
-   void isAuthenticated() async {
-     final SharedPreferences prefs = await SharedPreferences.getInstance();
-     final String token = prefs.getString('token');
-     if (token != null) {
-       final String email = prefs.getString('email');
-       final String id = prefs.getString('localId');
-       _authenticatedUser = User(
-         token: token,
-         email: email,
-         id: id,
-       );
-     }
-   }
+  void setTimeoutFunction(int time) {
+    print(time);
+    _expiryTime = Timer(Duration(seconds: time), logout);
+  }
 
-   void logout() async {
-     _authenticatedUser = null;
-     final SharedPreferences prefs = await SharedPreferences.getInstance();
-     prefs.remove('token');
-     prefs.remove('email');
-     prefs.remove('localId');
-   }
+  void autoAuthenticated() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String token = prefs.getString('token');
+
+    final String expiryTime = prefs.get('expiryTime');
+
+    if (token != null) {
+      final DateTime now = DateTime.now();
+      final DateTime parsedExpiryTime = DateTime.parse(expiryTime);
+      if (parsedExpiryTime.isBefore(now)) {
+        print('in isbefore');
+        _authenticatedUser = null;
+        _userSubject.add(false);
+        notifyListeners();
+        return;
+      }
+      _userSubject.add(true);
+      final String email = prefs.getString('email');
+      final String id = prefs.getString('localId');
+      final remainingExpiryTime = parsedExpiryTime.difference(now).inSeconds;
+      setTimeoutFunction(remainingExpiryTime);
+      _authenticatedUser = User(
+        token: token,
+        email: email,
+        id: id,
+      );
+      notifyListeners();
+    }
+  }
+
+  void logout() async {
+    _authenticatedUser = null;
+    _expiryTime.cancel();
+    _userSubject.add(false);
+    print('logout');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.remove('token');
+    prefs.remove('email');
+    prefs.remove('localId');
+  }
 }
 
 class UtilityModel extends ConnectingProductsModel {

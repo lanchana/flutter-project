@@ -160,7 +160,7 @@ class _EditProductsState extends State<EditProducts> {
           _formData['imageUrl'], _formData['price']).then((success) {
         if (success) {
           Navigator
-              .pushNamed(context, '/products')
+              .pushNamed(context, '/')
               .then((_) => setSelectedProduct(null));
         } else {
           alertDialogueBox(context);
@@ -171,7 +171,7 @@ class _EditProductsState extends State<EditProducts> {
           _formData['imageUrl'], _formData['price']).then((success) {
         if (success) {
           Navigator
-              .pushNamed(context, '/products')
+              .pushNamed(context, '/')
               .then((_) => setSelectedProduct(null));
         } else {
           alertDialogueBox(context);

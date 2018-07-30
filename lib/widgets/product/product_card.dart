@@ -38,6 +38,7 @@ class ProductCard extends StatelessWidget {
               onPressed: () {
                 model.selectProduct(model.getProductList[index].id);
                 model.toggleSelectedProductFavorite();
+                // model.selectProduct(null);
                 //  Navigator.pushNamed<bool>(
                 //     context, '/product/' + index.toString());
               },

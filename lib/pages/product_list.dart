@@ -22,7 +22,7 @@ class _ProductsListState extends State<ProductList> {
   
   @override
   void initState() {
-    widget.model.fetchProducts();
+    widget.model.fetchProducts(onlyForUser: true);
     super.initState();
   }
 
